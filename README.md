@@ -8,6 +8,12 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-hans.md) | [繁�
 
 ## Installation
 
+### LuaRocks
+
+```bash
+luarocks install budoux
+```
+
 ### lazy.nvim (Neovim)
 
 ```lua

@@ -8,6 +8,12 @@ BudouX ใช้โมเดล ML ขนาดเล็กในการค้
 
 ## การติดตั้ง
 
+### LuaRocks
+
+```bash
+luarocks install budoux
+```
+
 ### lazy.nvim (Neovim)
 
 ```lua
