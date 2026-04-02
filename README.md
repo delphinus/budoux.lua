@@ -68,13 +68,6 @@ Parse text into chunks using the BudouX model.
 - `text` — input text string
 - Returns: `string[]` — array of phrase chunks
 
-### `budoux.split_by_script(chunk)`
-
-Sub-split a chunk at script transition boundaries (kanji/katakana to other scripts). This is not part of the original BudouX but useful for finer-grained Japanese line breaking.
-
-- `chunk` — a string to split
-- Returns: `string[]` — array of sub-chunks
-
 ## Available Models
 
 | Model | Loader | Language |

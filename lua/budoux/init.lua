@@ -22,96 +22,14 @@ local function utf8_chars(s)
   return chars
 end
 
---- Extract Unicode code point from a UTF-8 character.
----@param char string A single UTF-8 character
----@return integer
-local function utf8_codepoint(char)
-  local b1 = char:byte(1)
-  if b1 < 0x80 then return b1 end
-  if b1 < 0xE0 then return (b1 - 0xC0) * 64 + (char:byte(2) - 128) end
-  if b1 < 0xF0 then return (b1 - 0xE0) * 4096 + (char:byte(2) - 128) * 64 + (char:byte(3) - 128) end
-  return (b1 - 0xF0) * 262144 + (char:byte(2) - 128) * 4096 + (char:byte(3) - 128) * 64 + (char:byte(4) - 128)
-end
-
---- Classify a character into a script class for sub-splitting.
---- "C" = CJK ideograph, "H" = hiragana, "K" = katakana, "O" = other
----@param char string
----@return string
-local function script_class(char)
-  local cp = utf8_codepoint(char)
-  if cp >= 0x4E00 and cp <= 0x9FFF then return "C" end
-  if cp >= 0x3400 and cp <= 0x4DBF then return "C" end
-  if cp >= 0xF900 and cp <= 0xFAFF then return "C" end
-  if cp >= 0x3040 and cp <= 0x309F then return "H" end
-  if cp >= 0x30A0 and cp <= 0x30FF then return "K" end
-  if cp >= 0x31F0 and cp <= 0x31FF then return "K" end
-  if cp >= 0xFF65 and cp <= 0xFF9F then return "K" end
-  return "O"
-end
-
---- Sub-split a BudouX chunk at script transition boundaries (kanji <-> kana).
---- This provides finer-grained segments so that line-breaking algorithms can
---- break long phrases like "参照してください" into "参照" + "してください".
---- Punctuation/symbols ("O" class) attach to the preceding run.
----@param chunk string
----@return string[]
-function M.split_by_script(chunk)
-  local chars = utf8_chars(chunk)
-  if #chars <= 1 then return { chunk } end
-
-  local sub_chunks = {}
-  local current = chars[1]
-  local prev_cls = script_class(chars[1])
-  local kanji_run = prev_cls == "C" and 1 or 0
-
-  for i = 2, #chars do
-    local cls = script_class(chars[i])
-    -- Split when transitioning FROM kanji/katakana TO a different script.
-    -- Hiragana→kanji transitions are NOT split, keeping units like "お知" together.
-    -- For kanji→hiragana, only split when 2+ kanji preceded (漢語 + 助詞/助動詞).
-    -- Single kanji + hiragana is likely 送り仮名 (e.g. 起こる, 食べる) — don't split.
-    -- Split AFTER nakaguro "・" (U+30FB): it acts as a word separator
-    -- in katakana compounds (e.g. "ユニグラム・バイグラム" → "ユニグラム・" | "バイグラム").
-    -- The "・" stays at the end of the preceding chunk (it's in NO_BREAK_START).
-    local should_split = false
-    if chars[i - 1] == "・" and current ~= "・" then
-      should_split = true
-    end
-    if cls ~= "O" and cls ~= prev_cls then
-      if prev_cls == "K" then
-        should_split = true
-      elseif prev_cls == "C" and cls == "H" then
-        should_split = kanji_run >= 2
-      elseif prev_cls == "C" then
-        should_split = true
-      end
-    end
-    if should_split then
-      sub_chunks[#sub_chunks + 1] = current
-      current = chars[i]
-      kanji_run = 0
-    else
-      current = current .. chars[i]
-    end
-    if cls == "C" then
-      kanji_run = kanji_run + 1
-    elseif cls ~= "O" then
-      kanji_run = 0
-    end
-    if cls ~= "O" then prev_cls = cls end
-  end
-  sub_chunks[#sub_chunks + 1] = current
-  return sub_chunks
-end
-
 --- Parse text into chunks using a BudouX model (internal implementation).
 ---@param model table BudouX model
 ---@param text string Input text
 ---@return string[] chunks
 local function parse(model, text)
   local chars = utf8_chars(text)
-  if #chars <= 3 then
-    return { text }
+  if #chars == 0 then
+    return {}
   end
 
   local chunks = {}

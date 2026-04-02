@@ -17,17 +17,25 @@ describe("Parser", function()
       assert.are.same({ "abcde", "abcd" }, result)
     end)
 
-    it("returns the input as-is for empty string", function()
+    it("returns empty table for empty string", function()
       local parser = budoux.Parser.new({ UW4 = { a = 10000 }, base_score = 0 })
       local result = parser:parse("")
-      assert.are.same({ "" }, result)
+      assert.are.same({}, result)
     end)
 
-    it("returns the input as-is for short strings (<=3 chars)", function()
+    it("returns single chunk for single character", function()
       local parser = budoux.Parser.new({ UW4 = { a = 10000 }, base_score = 0 })
-      assert.are.same({ "abc" }, parser:parse("abc"))
-      assert.are.same({ "ab" }, parser:parse("ab"))
       assert.are.same({ "a" }, parser:parse("a"))
+    end)
+
+    it("can split short strings", function()
+      -- UW4 checks w1 (char after break point), so break happens before "a"
+      local parser = budoux.Parser.new({ UW4 = { a = 10000 }, base_score = 0 })
+      assert.are.same({ "xy", "abc" }, parser:parse("xyabc"))
+      -- UW3 checks p3 (char before break point), so break happens after "a"
+      local parser2 = budoux.Parser.new({ UW3 = { a = 10000 }, base_score = 0 })
+      assert.are.same({ "a", "b" }, parser2:parse("ab"))
+      assert.are.same({ "a", "bc" }, parser2:parse("abc"))
     end)
 
     it("handles text with no break points", function()
@@ -76,35 +84,5 @@ describe("load_default_thai_parser", function()
       "ภาร", "กิจ", "ของ", "เรา", "คือ", "การ",
       "จัดระเบียบ", "ข้อมูล", "ของ", "โลก",
     }, result)
-  end)
-end)
-
-describe("split_by_script", function()
-  it("splits kanji and hiragana (2+ kanji)", function()
-    local result = budoux.split_by_script("参照してください")
-    assert.are.same({ "参照", "してください" }, result)
-  end)
-
-  it("does not split single kanji + hiragana (okurigana)", function()
-    local result = budoux.split_by_script("食べる")
-    assert.are.same({ "食べる" }, result)
-  end)
-
-  it("splits katakana from other scripts", function()
-    local result = budoux.split_by_script("東京タワー")
-    assert.are.same({ "東京", "タワー" }, result)
-  end)
-
-  it("splits after nakaguro", function()
-    local result = budoux.split_by_script("ユニグラム・バイグラム")
-    assert.are.same({ "ユニグラム・", "バイグラム" }, result)
-  end)
-
-  it("returns single char as-is", function()
-    assert.are.same({ "あ" }, budoux.split_by_script("あ"))
-  end)
-
-  it("returns empty string as-is", function()
-    assert.are.same({ "" }, budoux.split_by_script(""))
   end)
 end)
