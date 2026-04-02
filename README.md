@@ -4,10 +4,6 @@ A Lua port of [BudouX](https://github.com/google/budoux) — the machine learnin
 
 BudouX uses a compact ML model to find natural word boundaries in CJK text, producing more readable line breaks than character-level splitting.
 
-## Status
-
-This is an initial release (v0.1.0) with the Japanese model only. A future release will include full API compatibility with the original BudouX, additional language models (Simplified/Traditional Chinese, Thai), and LuaRocks publishing.
-
 ## Installation
 
 ### lazy.nvim (Neovim)
@@ -24,41 +20,69 @@ Copy the `lua/budoux/` directory into your Lua package path.
 
 ```lua
 local budoux = require("budoux")
-local ja = require("budoux.models.ja")
+
+-- Create a parser for your language
+local parser = budoux.load_default_japanese_parser()
 
 -- Split text into natural phrases
-local chunks = budoux.parse(ja, "今日は天気がいいから散歩しましょう。")
+local chunks = parser:parse("今日は天気がいいから散歩しましょう。")
 -- → { "今日は", "天気が", "いいから", "散歩しましょう。" }
 
--- Further split by script boundaries (kanji ↔ kana)
-local sub = budoux.split_by_script("参照してください")
--- → { "参照", "してください" }
+-- Other languages
+local zh_hans = budoux.load_default_simplified_chinese_parser()
+local zh_hant = budoux.load_default_traditional_chinese_parser()
+local th = budoux.load_default_thai_parser()
+
+-- Custom model
+local parser = budoux.Parser.new(your_model_table)
 ```
 
 ## API
 
-### `budoux.parse(model, text)`
+### `budoux.load_default_japanese_parser()`
+
+Returns a `Parser` for Japanese.
+
+### `budoux.load_default_simplified_chinese_parser()`
+
+Returns a `Parser` for Simplified Chinese.
+
+### `budoux.load_default_traditional_chinese_parser()`
+
+Returns a `Parser` for Traditional Chinese.
+
+### `budoux.load_default_thai_parser()`
+
+Returns a `Parser` for Thai.
+
+### `budoux.Parser.new(model)`
+
+Create a `Parser` from a custom model table.
+
+- `model` — a table with feature weight tables (`UW1`–`UW6`, `BW1`–`BW3`, `TW1`–`TW4`) and `base_score`
+
+### `parser:parse(text)`
 
 Parse text into chunks using the BudouX model.
 
-- `model` — a model table (e.g. `require("budoux.models.ja")`)
 - `text` — input text string
 - Returns: `string[]` — array of phrase chunks
 
 ### `budoux.split_by_script(chunk)`
 
-Sub-split a chunk at script transition boundaries (kanji/katakana to other scripts). This is not part of the original BudouX but useful for finer-grained line breaking.
+Sub-split a chunk at script transition boundaries (kanji/katakana to other scripts). This is not part of the original BudouX but useful for finer-grained Japanese line breaking.
 
 - `chunk` — a string to split
 - Returns: `string[]` — array of sub-chunks
 
 ## Available Models
 
-| Model | Require path | Language |
+| Model | Loader | Language |
 |---|---|---|
-| Japanese | `budoux.models.ja` | Japanese |
-
-More models (Simplified Chinese, Traditional Chinese, Thai) will be added in a future release.
+| Japanese | `load_default_japanese_parser()` | Japanese |
+| Simplified Chinese | `load_default_simplified_chinese_parser()` | Simplified Chinese |
+| Traditional Chinese | `load_default_traditional_chinese_parser()` | Traditional Chinese |
+| Thai | `load_default_thai_parser()` | Thai |
 
 ## License
 
