@@ -104,12 +104,11 @@ function M.split_by_script(chunk)
   return sub_chunks
 end
 
---- Parse text into chunks using the BudouX model.
---- Each chunk represents a segment that should not be broken across lines.
----@param model table BudouX model (e.g. require("budoux.models.ja"))
+--- Parse text into chunks using a BudouX model (internal implementation).
+---@param model table BudouX model
 ---@param text string Input text
 ---@return string[] chunks
-function M.parse(model, text)
+local function parse(model, text)
   local chars = utf8_chars(text)
   if #chars <= 3 then
     return { text }
@@ -181,6 +180,51 @@ function M.parse(model, text)
   chunks[#chunks + 1] = table.concat(parts)
 
   return chunks
+end
+
+--- @class budoux.Parser
+--- @field model table The BudouX model data
+local Parser = {}
+Parser.__index = Parser
+M.Parser = Parser
+
+--- Create a new Parser with the given model.
+---@param model table BudouX model (e.g. require("budoux.models.ja"))
+---@return budoux.Parser
+function Parser.new(model)
+  return setmetatable({ model = model }, Parser)
+end
+
+--- Parse text into chunks using the BudouX model.
+--- Each chunk represents a segment that should not be broken across lines.
+---@param text string Input text
+---@return string[] chunks
+function Parser:parse(text)
+  return parse(self.model, text)
+end
+
+--- Load a default Japanese parser.
+---@return budoux.Parser
+function M.load_default_japanese_parser()
+  return Parser.new(require("budoux.models.ja"))
+end
+
+--- Load a default Simplified Chinese parser.
+---@return budoux.Parser
+function M.load_default_simplified_chinese_parser()
+  return Parser.new(require("budoux.models.zh_hans"))
+end
+
+--- Load a default Traditional Chinese parser.
+---@return budoux.Parser
+function M.load_default_traditional_chinese_parser()
+  return Parser.new(require("budoux.models.zh_hant"))
+end
+
+--- Load a default Thai parser.
+---@return budoux.Parser
+function M.load_default_thai_parser()
+  return Parser.new(require("budoux.models.th"))
 end
 
 return M
